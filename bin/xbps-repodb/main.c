@@ -47,6 +47,7 @@ usage(void)
 	" -v, --verbose  Enable verbose output\n"
 	" -V, --version  Prints the xbps release version\n"
 	"MODE:\n"
+	" -c, --check    Check runtime dependencies and shlibs\n"
 	" -p, --purge    Remove obsolete binary packages from repositories\n");
 	exit(EXIT_FAILURE);
 }
@@ -57,6 +58,7 @@ main(int argc, char **argv)
 	int c = 0, rv = 0;
 	struct xbps_handle xh;
 	const struct option longopts[] = {
+		{ "check", no_argument, NULL, 'c' },
 		{ "debug", no_argument, NULL, 'd' },
 		{ "dry-run", no_argument, NULL, 'n' },
 		{ "verbose", no_argument, NULL, 'v' },
@@ -66,13 +68,17 @@ main(int argc, char **argv)
 	bool dry = false;
 	enum {
 		MODE_NIL,
+		MODE_CHECK,
 		MODE_PURGE,
 	} mode = MODE_NIL;
 
 	memset(&xh, 0, sizeof xh);
 
-	while ((c = getopt_long(argc, argv, "dhnpVv", longopts, NULL)) != -1) {
+	while ((c = getopt_long(argc, argv, "cDhnpVv", longopts, NULL)) != -1) {
 		switch (c) {
+		case 'c':
+			mode = MODE_CHECK;
+			break;
 		case 'd':
 			xh.flags |= XBPS_FLAG_DEBUG;
 			break;
@@ -111,8 +117,12 @@ main(int argc, char **argv)
 	}
 
 	switch (mode) {
+	case MODE_CHECK:
+		rv = check(&xh, argc, argv);
+		break;
 	case MODE_PURGE:
 		rv = purge_repos(&xh, argc, argv, dry);
+		break;
 	case MODE_NIL:
 		break;
 	}

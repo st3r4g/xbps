@@ -26,7 +26,10 @@
 #ifndef _XBPS_REPODB_DEFS_H_
 #define _XBPS_REPODB_DEFS_H_
 
-/* Form purge.c */
+/* From purge.c */
 int purge_repos(struct xbps_handle *, int, char *[], bool);
+
+/* From check.c */
+int check(struct xbps_handle *, int, char *[]);
 
 #endif /* !_XBPS_REPODB_DEFS_H_ */
