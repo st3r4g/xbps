@@ -74,7 +74,7 @@ main(int argc, char **argv)
 
 	memset(&xh, 0, sizeof xh);
 
-	while ((c = getopt_long(argc, argv, "cDhnpVv", longopts, NULL)) != -1) {
+	while ((c = getopt_long(argc, argv, "cdhnpVv", longopts, NULL)) != -1) {
 		switch (c) {
 		case 'c':
 			mode = MODE_CHECK;

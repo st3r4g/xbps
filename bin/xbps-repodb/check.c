@@ -28,7 +28,7 @@ struct repo {
 static struct repo *repos;
 
 static void
-add_repo(struct xbps_handle *xhp, const char *path)
+add_repo(struct xbps_handle *xhp, const char *path, bool monoarch)
 {
 	struct repo *repo = calloc(1, sizeof (struct repo));
 	if (repo == NULL) {
@@ -67,8 +67,9 @@ add_repo(struct xbps_handle *xhp, const char *path)
 			}
 			strncpy(arch->arch, name, d-name);
 
-			// skip unwanted arches
-			if (1 && strcmp(arch->arch, "x86_64") != 0) {
+			// skip unwanted archs in monoarch mode
+			// TODO: figure out the monoarch
+			if (monoarch && strcmp(arch->arch, "x86_64-musl") != 0) {
 				free(arch);
 				continue;
 			}
@@ -112,12 +113,18 @@ add_repo(struct xbps_handle *xhp, const char *path)
 
 static int
 check_deps(struct repo *repo_) {
-	xbps_dictionary_t index = repo_->archs->repo->idx;
+	xbps_dictionary_t index;
 	xbps_object_iterator_t iter;
 	xbps_dictionary_keysym_t keysym;
 	xbps_array_t deps;
 
 	printf("\nChecking %s:\n", repo_->path);
+
+	if (!repo_->archs) {
+		return 0;
+	}
+
+	index = repo_->archs->repo->idx;
 	
 	iter = xbps_dictionary_iterator(index);
 	while ((keysym = xbps_object_iterator_next(iter))) {
@@ -133,6 +140,8 @@ check_deps(struct repo *repo_) {
 
 			xbps_array_get_cstring_nocopy(deps, i, &dep);
 			for (struct repo *repo = repos; repo; repo = repo->next) {
+				if (!repo->archs)
+					continue;
 				if ((found = xbps_repo_get_pkg(repo->archs->repo, dep)))
 					break;
 				if ((found = xbps_repo_get_virtualpkg(repo->archs->repo, dep)))
@@ -153,11 +162,15 @@ check_shlibs(void) {
 	xbps_object_iterator_t iter;
 	xbps_dictionary_keysym_t keysym;
 
-	printf("\nSHLIBS CHECKING:\n");
 	shlibs = xbps_dictionary_create();
 
 	for (struct repo *repo = repos; repo; repo = repo->next) {
-		xbps_dictionary_t index = repo->archs->repo->idx;
+		xbps_dictionary_t index;
+
+		if (!repo->archs)
+			continue;
+
+		index = repo->archs->repo->idx;
 		iter = xbps_dictionary_iterator(index);
 		while ((keysym = xbps_object_iterator_next(iter))) {
 			xbps_dictionary_t pkgd = xbps_dictionary_get_keysym(index, keysym);
@@ -172,7 +185,12 @@ check_shlibs(void) {
 	}
 
 	for (struct repo *repo = repos; repo; repo = repo->next) {
-		xbps_dictionary_t index = repo->archs->repo->idx;
+		xbps_dictionary_t index;
+
+		if (!repo->archs)
+			continue;
+
+		index = repo->archs->repo->idx;
 		iter = xbps_dictionary_iterator(index);
 		while ((keysym = xbps_object_iterator_next(iter))) {
 			xbps_dictionary_t pkgd = xbps_dictionary_get_keysym(index, keysym);
@@ -194,13 +212,12 @@ check_shlibs(void) {
 int
 check(struct xbps_handle *xhp, int argc, char *argv[])
 {
-	struct repo *rep;
 	for (int i = 0; i < argc; i++)
-		add_repo(xhp, argv[i]);
-	rep = repos;
-	printf("%p\n", rep);
+		add_repo(xhp, argv[i], true);
+	printf("== CHECK Runtime dependencies ==\n");
 	for (struct repo *repo = repos; repo; repo = repo->next)
 		check_deps(repo);
+	printf("\n== CHECK Shared libraries ==\n");
 	check_shlibs();
 	return 0;
 }
