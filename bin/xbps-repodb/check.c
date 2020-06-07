@@ -96,21 +96,8 @@ add_repo(struct xbps_handle *xhp, const char *path, bool monoarch)
 }
 
 /*
- * For each pkg in the stage:
- *  For each dep of the pkg:
- *   check satisfied by stage
- *   check satisfied by public
+ * The shlibs way of merging everything should be faster
  */
-
-/*
- * Save list of pkg in the stage
- * Commit stage to public
- * For each pkg in list:
- *  For each dep of the pkg:
- *   For each repo:
- *    check satisfied
- */
-
 static int
 check_deps(struct repo *repo_) {
 	xbps_dictionary_t index;
@@ -118,11 +105,11 @@ check_deps(struct repo *repo_) {
 	xbps_dictionary_keysym_t keysym;
 	xbps_array_t deps;
 
-	printf("\nChecking %s:\n", repo_->path);
-
 	if (!repo_->archs) {
 		return 0;
 	}
+
+	printf("\nChecking %s:\n", repo_->path);
 
 	index = repo_->archs->repo->idx;
 	
@@ -149,7 +136,7 @@ check_deps(struct repo *repo_) {
 			}
 
 			if (!found)
-				printf("%s: not found (required by %s)\n", dep, pkgver);
+				printf("%s: missing %s\n", pkgver, dep);
 		}
 	}
 	xbps_object_iterator_release(iter);
@@ -202,7 +189,7 @@ check_shlibs(void) {
 				const char *shlib = NULL;
 				xbps_array_get_cstring_nocopy(pkgshlibs, i, &shlib);
 				if (!xbps_dictionary_get(shlibs, shlib))
-					printf("%s: not found (required by %s)\n", shlib, pkgver);
+					printf("%s: missing %s\n", pkgver, shlib);
 			}
 		}
 		xbps_object_iterator_release(iter);
