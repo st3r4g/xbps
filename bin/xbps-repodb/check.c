@@ -68,8 +68,7 @@ add_repo(struct xbps_handle *xhp, const char *path, bool monoarch)
 			strncpy(arch->arch, name, d-name);
 
 			// skip unwanted archs in monoarch mode
-			// TODO: figure out the monoarch
-			if (monoarch && strcmp(arch->arch, "x86_64-musl") != 0) {
+			if (monoarch && strcmp(arch->arch, xhp->native_arch) != 0) {
 				free(arch);
 				continue;
 			}
@@ -97,6 +96,7 @@ add_repo(struct xbps_handle *xhp, const char *path, bool monoarch)
 
 /*
  * The shlibs way of merging everything should be faster
+ * Also look at rpool
  */
 static int
 check_deps(struct repo *repo_) {
@@ -105,6 +105,7 @@ check_deps(struct repo *repo_) {
 	xbps_dictionary_keysym_t keysym;
 	xbps_array_t deps;
 
+//	return 0;
 	if (!repo_->archs) {
 		return 0;
 	}
@@ -156,6 +157,7 @@ check_shlibs(void) {
 
 		if (!repo->archs)
 			continue;
+	printf("\nAdding `provides` from %s...\n", repo->path);
 
 		index = repo->archs->repo->idx;
 		iter = xbps_dictionary_iterator(index);
@@ -176,6 +178,7 @@ check_shlibs(void) {
 
 		if (!repo->archs)
 			continue;
+	printf("\nChecking %s:\n", repo->path);
 
 		index = repo->archs->repo->idx;
 		iter = xbps_dictionary_iterator(index);
