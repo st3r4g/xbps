@@ -94,11 +94,7 @@ add_repo(struct xbps_handle *xhp, const char *path, bool monoarch)
 	}
 }
 
-/*
- * The shlibs way of merging everything should be faster
- * Also look at rpool
- */
-static int
+/*static int
 check_deps(struct repo *repo_) {
 	xbps_dictionary_t index;
 	xbps_object_iterator_t iter;
@@ -141,6 +137,85 @@ check_deps(struct repo *repo_) {
 		}
 	}
 	xbps_object_iterator_release(iter);
+	return 0;
+}*/
+
+static int
+check_deps2(void) {
+	xbps_dictionary_t pkgs;
+	xbps_object_iterator_t iter;
+	xbps_dictionary_keysym_t keysym;
+	char pkgname[XBPS_NAME_SIZE] = {0};
+
+	pkgs = xbps_dictionary_create();
+
+	for (struct repo *repo = repos; repo; repo = repo->next) {
+		xbps_dictionary_t index;
+
+		if (!repo->archs)
+			continue;
+
+		printf("\nAdding packages from %s...\n", repo->path);
+
+		index = repo->archs->repo->idx;
+		iter = xbps_dictionary_iterator(index);
+		while ((keysym = xbps_object_iterator_next(iter))) {
+			xbps_dictionary_t pkgd = xbps_dictionary_get_keysym(index, keysym);
+			const char *pkgver = NULL;
+			xbps_dictionary_t pkg;
+			xbps_array_t provides;
+			xbps_dictionary_get_cstring_nocopy(pkgd, "pkgver", &pkgver);
+			xbps_pkg_name(pkgname, sizeof(pkgname), pkgver);
+			pkg = xbps_dictionary_create();
+			xbps_dictionary_set_cstring(pkg, "pkgver", pkgver);
+			if (xbps_dictionary_get(pkgs, pkgname))
+				printf("%s already here\n", pkgname);
+			xbps_dictionary_set(pkgs, pkgname, pkg);
+			provides = xbps_dictionary_get(pkgd, "provides");
+			for (unsigned int i = 0; i < xbps_array_count(provides); i++) {
+				const char *provide = NULL;
+				xbps_dictionary_t pkgdz;
+				xbps_array_get_cstring_nocopy(provides, i, &provide);
+				xbps_pkg_name(pkgname, sizeof(pkgname), provide);
+				pkg = xbps_dictionary_create();
+				xbps_dictionary_set_cstring(pkg, "pkgver", pkgver);
+				if ((pkgdz = xbps_dictionary_get(pkgs, pkgname))) {
+					const char *pkgverz = NULL;
+					xbps_dictionary_get_cstring_nocopy(pkgdz, "pkgver", &pkgverz);
+					printf("%s already here (%s)\n", pkgname, pkgverz);
+				}
+				xbps_dictionary_set(pkgs, pkgname, pkg);
+			}
+		}
+		xbps_object_iterator_release(iter);
+	}
+
+	for (struct repo *repo = repos; repo; repo = repo->next) {
+		xbps_dictionary_t index;
+
+		if (!repo->archs)
+			continue;
+
+		printf("\nChecking %s:\n", repo->path);
+
+		index = repo->archs->repo->idx;
+		iter = xbps_dictionary_iterator(index);
+		while ((keysym = xbps_object_iterator_next(iter))) {
+			xbps_dictionary_t pkgd = xbps_dictionary_get_keysym(index, keysym);
+			xbps_array_t deps = xbps_dictionary_get(pkgd, "run_depends");
+			const char *pkgver = NULL;
+
+			xbps_dictionary_get_cstring_nocopy(pkgd, "pkgver", &pkgver);
+			for (unsigned int i = 0; i < xbps_array_count(deps); i++) {
+				const char *dep = NULL;
+				xbps_array_get_cstring_nocopy(deps, i, &dep);
+				if (!xbps_my_find_pkg_in_dict(pkgs, dep))
+					printf("%s: missing %s\n", pkgver, dep);
+			}
+		}
+		xbps_object_iterator_release(iter);
+	}
+
 	return 0;
 }
 
@@ -205,8 +280,9 @@ check(struct xbps_handle *xhp, int argc, char *argv[])
 	for (int i = 0; i < argc; i++)
 		add_repo(xhp, argv[i], true);
 	printf("== CHECK Runtime dependencies ==\n");
-	for (struct repo *repo = repos; repo; repo = repo->next)
-		check_deps(repo);
+	check_deps2();
+//	for (struct repo *repo = repos; repo; repo = repo->next)
+//		check_deps(repo);
 	printf("\n== CHECK Shared libraries ==\n");
 	check_shlibs();
 	return 0;

@@ -828,6 +828,8 @@ const char *xbps_fetch_error_string(void);
  */
 xbps_array_t xbps_find_pkg_orphans(struct xbps_handle *xhp, xbps_array_t orphans);
 
+xbps_dictionary_t xbps_my_find_pkg_in_dict(xbps_dictionary_t dict, const char *pkg);
+
 /** @addtogroup pkgdb */
 /*@{*/
 

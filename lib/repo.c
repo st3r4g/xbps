@@ -476,6 +476,10 @@ add:
 	return pkgd;
 }
 
+xbps_dictionary_t xbps_my_find_pkg_in_dict(xbps_dictionary_t dict, const char *pkg) {
+	return xbps_find_pkg_in_dict(dict, pkg);
+}
+
 xbps_dictionary_t
 xbps_repo_get_pkg_plist(struct xbps_handle *xhp, xbps_dictionary_t pkgd,
 		const char *plist)
