@@ -168,8 +168,9 @@ check_deps2(void) {
 			xbps_pkg_name(pkgname, sizeof(pkgname), pkgver);
 			pkg = xbps_dictionary_create();
 			xbps_dictionary_set_cstring(pkg, "pkgver", pkgver);
+/*			xbps_dictionary_set_cstring(pkg, "virtual", "-");
 			if (xbps_dictionary_get(pkgs, pkgname))
-				printf("%s already here\n", pkgname);
+				printf("%s already here\n", pkgname);*/
 			xbps_dictionary_set(pkgs, pkgname, pkg);
 			provides = xbps_dictionary_get(pkgd, "provides");
 			for (unsigned int i = 0; i < xbps_array_count(provides); i++) {
@@ -178,13 +179,17 @@ check_deps2(void) {
 				xbps_array_get_cstring_nocopy(provides, i, &provide);
 				xbps_pkg_name(pkgname, sizeof(pkgname), provide);
 				pkg = xbps_dictionary_create();
-				xbps_dictionary_set_cstring(pkg, "pkgver", pkgver);
-				if ((pkgdz = xbps_dictionary_get(pkgs, pkgname))) {
+				xbps_dictionary_set_cstring(pkg, "pkgver", provide);
+//				xbps_dictionary_set_cstring(pkg, "virtual", pkgver);
+				if (!(pkgdz = xbps_dictionary_get(pkgs, pkgname))) // Can we avoid this? (make `xbps_dictionary_set` ignore and not replace)
+					xbps_dictionary_set(pkgs, pkgname, pkg);
+/*				else {
 					const char *pkgverz = NULL;
+					const char *virtualz = NULL;
 					xbps_dictionary_get_cstring_nocopy(pkgdz, "pkgver", &pkgverz);
-					printf("%s already here (%s)\n", pkgname, pkgverz);
-				}
-				xbps_dictionary_set(pkgs, pkgname, pkg);
+					xbps_dictionary_get_cstring_nocopy(pkgdz, "virtual", &virtualz);
+					printf("%s already here (%s %s)\n", pkgname, pkgverz, virtualz);
+				}*/
 			}
 		}
 		xbps_object_iterator_release(iter);
